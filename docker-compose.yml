@@ -14,8 +14,6 @@ services:
       - "80:80"
     volumes:
       - wp_data:/var/www/html
-      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       php:
@@ -28,7 +26,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    # Labels para Traefik (Coolify los lee automáticamente)
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wp.rule=Host(`${DOMAIN}`)"
@@ -49,24 +46,19 @@ services:
     restart: unless-stopped
     volumes:
       - wp_data:/var/www/html
-      - ./config/php/php.ini:/usr/local/etc/php/php.ini:ro
-      - ./config/php/opcache.ini:/usr/local/etc/php/conf.d/opcache.ini:ro
-      - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
     environment:
-      # Variables nativas de la imagen oficial de WordPress
       WORDPRESS_DB_HOST: mariadb:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
       WORDPRESS_DB_USER: ${DB_USER}
       WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
       WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX}
-      # Configuración extra inyectada en wp-config.php
       WORDPRESS_CONFIG_EXTRA: |
         define('WP_REDIS_HOST', 'redis');
         define('WP_REDIS_PORT', 6379);
         define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
         define('WP_REDIS_DATABASE', 0);
         define('WP_CACHE', true);
-        define('DISABLE_WP_CRON', true); // Usamos el cron del sistema (Dockerfile)
+        define('DISABLE_WP_CRON', true);
         define('WP_MEMORY_LIMIT', '1024M');
         define('WP_MAX_MEMORY_LIMIT', '1024M');
     depends_on:
@@ -93,13 +85,11 @@ services:
       args:
         PHP_VERSION: ${PHP_VERSION:-8.2}
     container_name: wp_cli
-    restart: "no" # No se reinicia solo, se ejecuta bajo demanda
+    restart: "no"
     entrypoint: [ "wp" ]
     command: [ "--info" ]
     volumes:
       - wp_data:/var/www/html
-      - ./config/php/php.ini:/usr/local/etc/php/php.ini:ro
-      - ./config/wp-cli/wp-cli.yml:/var/www/.wp-cli/config.yml:ro
     environment:
       WORDPRESS_DB_HOST: mariadb:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -112,7 +102,7 @@ services:
     networks:
       - wp_network
     profiles:
-      - tools # Solo se levanta cuando se llama explícitamente
+      - tools
 
   # ──────────────────────────────────────────────
   # MariaDB 11 – Base de Datos
@@ -140,7 +130,7 @@ services:
 
   # ──────────────────────────────────────────────
   # Redis 7 – Object Cache & Sesiones
-  # ─────────────────────────────────────────────
+  # ──────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: wp_redis

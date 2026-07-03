@@ -3,13 +3,12 @@ FROM nginx:1.27-alpine
 LABEL maintainer="tu@email.com"
 LABEL description="Nginx optimizado para WordPress de alto rendimiento"
 
-# Eliminamos la configuración por defecto de Nginx para usar la nuestra
+# Eliminamos la configuración por defecto
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Aumentamos el límite de archivos abiertos a nivel del proceso
-# (En Alpine no existe /etc/security/limits.conf, así que usamos ulimit)
-RUN echo "nginx soft nofile 65535" > /etc/security/limits.conf 2>/dev/null || true && \
-    echo "nginx hard nofile 65535" >> /etc/security/limits.conf 2>/dev/null || true
+# Copiamos nuestra configuración personalizada
+COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY config/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
