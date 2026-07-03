@@ -5,8 +5,7 @@
 # Argumento para seleccionar la versión de PHP en tiempo de build
 ARG PHP_VERSION=8.2
 
-# Usamos la imagen oficial sin fijar el OS (bullseye/bookworm) 
-# para que Docker elija el base correcto según la versión de PHP.
+# Usamos la imagen oficial de WordPress con el formato correcto
 FROM wordpress:php${PHP_VERSION}-fpm
 
 LABEL maintainer="tu@email.com"
@@ -42,9 +41,12 @@ RUN pecl install redis \
     && docker-php-ext-enable redis
 
 # Instalamos Imagick para manipulación avanzada de imágenes.
-# Nota: En PHP 8.4/8.5 a veces requiere forzar la instalación de la versión beta/alpha si falla.
-RUN pecl install imagick \
-    && docker-php-ext-enable imagick
+# Usamos printf para evitar prompts interactivos y especificamos versión estable
+RUN printf "\n" | pecl install imagick-3.7.0 \
+    && docker-php-ext-enable imagick \
+    || (echo "Imagick installation failed, trying alternative method..." \
+    && pecl install imagick \
+    && docker-php-ext-enable imagick)
 
 # ─── 4. WP-CLI (WordPress Command Line Interface) ───
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
