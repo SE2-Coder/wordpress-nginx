@@ -1,5 +1,5 @@
 # ===================================================================
-# Dockerfile PHP Multi-versión (7.4 → 8.5) para WordPress
+# Dockerfile PHP Multi-versión (7.4 → 8.4) para WordPress
 # ===================================================================
 
 ARG PHP_VERSION=8.2
@@ -11,7 +11,7 @@ LABEL description="WordPress PHP-FPM optimizado con WP-CLI"
 
 # ─── 1. Dependencias del sistema ───
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev libavif-dev \
+    libpng-dev libjpeg-dev libwebp-dev libfreetype6-dev \
     unzip git curl cron supervisor pkg-config \
     libicu-dev libzip-dev libxml2-dev libcurl4-openssl-dev \
     libonig-dev libreadline-dev libtidy-dev \
@@ -19,11 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── 2. Extensiones nativas de PHP ───
+# Configuramos GD con soporte para formatos modernos
 RUN docker-php-ext-configure gd \
     --with-freetype \
     --with-jpeg \
     --with-webp \
-    --with-avif \
     && docker-php-ext-install -j$(nproc) \
     gd mysqli pdo_mysql intl zip curl mbstring xml dom soap \
     bcmath exif calendar sockets tidy xsl gmp opcache
