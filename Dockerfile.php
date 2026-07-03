@@ -7,7 +7,7 @@ ARG PHP_VERSION=8.2
 
 # Usamos la imagen oficial sin fijar el OS (bullseye/bookworm) 
 # para que Docker elija el base correcto según la versión de PHP.
-FROM wordpress:${PHP_VERSION}-fpm
+FROM wordpress:php${PHP_VERSION}-fpm
 
 LABEL maintainer="tu@email.com"
 LABEL description="WordPress PHP-FPM optimizado con WP-CLI"
