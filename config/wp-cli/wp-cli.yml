@@ -1,0 +1,10 @@
+# Configuración global de WP-CLI
+path: /var/www/html
+allow-root: true
+
+# Colores en la terminal (útil cuando ejecutes docker compose run)
+color: true
+
+# Límite de memoria para operaciones pesadas de WP-CLI (ej. search-replace)
+php:
+  memory_limit: 1024M

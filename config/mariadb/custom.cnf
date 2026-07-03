@@ -1,0 +1,45 @@
+# ===================================================================
+# Configuración de MariaDB 11 para Alto Rendimiento (WordPress)
+# ===================================================================
+
+[mysqld]
+# --- Caracteres y Collation (Vital para emojis y compatibilidad WP) ---
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+
+# --- InnoDB (El motor de almacenamiento) ---
+# Tamaño del buffer en memoria. 
+# NOTA: Si tu servidor tiene 4GB de RAM en total, déjalo en 1G. 
+# Si tiene 8GB, puedes subirlo a 2G o 3G. Nunca dejes más del 70% de la RAM total del servidor.
+innodb_buffer_pool_size = 1G
+innodb_buffer_pool_instances = 1
+
+# Archivos de log de InnoDB. 256M es el punto dulce para escrituras en WP.
+innodb_log_file_size = 256M
+innodb_log_buffer_size = 16M
+
+# Evita la doble caché (OS + InnoDB). Mejora drásticamente el I/O en Linux.
+innodb_flush_method = O_DIRECT
+innodb_flush_log_at_trx_commit = 2 
+# (2 es más rápido que 1, y para WP es perfectamente seguro. 1 es para bancos).
+
+# --- Conexiones y Hilos ---
+max_connections = 150
+thread_cache_size = 16
+tmp_table_size = 64M
+max_heap_table_size = 64M
+
+# --- Desactivar Query Cache (MariaDB 10.1.7+ lo desaconseja, en 11 está obsoleto) ---
+query_cache_type = 0
+query_cache_size = 0
+
+# --- Logs lentos (Opcional, útil para debugging) ---
+slow_query_log = 1
+slow_query_log_file = /var/lib/mysql/slow.log
+long_query_time = 2
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4
