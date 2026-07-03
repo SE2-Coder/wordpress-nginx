@@ -10,8 +10,6 @@ services:
       dockerfile: Dockerfile.nginx
     container_name: wp_nginx
     restart: unless-stopped
-    ports:
-      - "80:80"
     volumes:
       - wp_data:/var/www/html
       - nginx_logs:/var/log/nginx
