@@ -8,7 +8,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    container_name: wp_nginx
+    # ❌ ELIMINADO: container_name: wp_nginx
     restart: unless-stopped
     volumes:
       - wp_data:/var/www/html
@@ -40,7 +40,7 @@ services:
       dockerfile: Dockerfile.php
       args:
         PHP_VERSION: ${PHP_VERSION:-8.2}
-    container_name: wp_php
+    # ❌ ELIMINADO: container_name: wp_php
     restart: unless-stopped
     volumes:
       - wp_data:/var/www/html
@@ -82,7 +82,7 @@ services:
       dockerfile: Dockerfile.php
       args:
         PHP_VERSION: ${PHP_VERSION:-8.2}
-    container_name: wp_cli
+    # ❌ ELIMINADO: container_name: wp_cli
     restart: "no"
     entrypoint: [ "wp" ]
     command: [ "--info" ]
@@ -107,7 +107,7 @@ services:
   # ──────────────────────────────────────────────
   mariadb:
     image: mariadb:11.4
-    container_name: wp_mariadb
+    # ❌ ELIMINADO: container_name: wp_mariadb
     restart: unless-stopped
     volumes:
       - mariadb_data:/var/lib/mysql
@@ -131,7 +131,7 @@ services:
   # ──────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: wp_redis
+    # ❌ ELIMINADO: container_name: wp_redis
     restart: unless-stopped
     command: >
       redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --requirepass ${REDIS_PASSWORD}
