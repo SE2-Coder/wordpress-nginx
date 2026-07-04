@@ -1,14 +1,10 @@
 version: "3.9"
 
 services:
-  # ──────────────────────────────────────────────
-  # NGINX – Reverse Proxy & Servidor Web
-  # ──────────────────────────────────────────────
   nginx:
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    # ❌ ELIMINADO: container_name: wp_nginx
     restart: unless-stopped
     volumes:
       - wp_data:/var/www/html
@@ -31,16 +27,12 @@ services:
       - "traefik.http.routers.wp.tls.certresolver=letsencrypt"
       - "traefik.http.services.wp.loadbalancer.server.port=80"
 
-  # ──────────────────────────────────────────────
-  # PHP-FPM – Motor de WordPress
-  # ──────────────────────────────────────────────
   php:
     build:
       context: .
       dockerfile: Dockerfile.php
       args:
         PHP_VERSION: ${PHP_VERSION:-8.2}
-    # ❌ ELIMINADO: container_name: wp_php
     restart: unless-stopped
     volumes:
       - wp_data:/var/www/html
@@ -54,11 +46,16 @@ services:
         define('WP_REDIS_HOST', 'redis');
         define('WP_REDIS_PORT', 6379);
         define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
-        define('WP_REDIS_DATABASE', 0);
+        define('WP_REDIS_DATABASE', ${REDIS_DB:-0});
         define('WP_CACHE', true);
         define('DISABLE_WP_CRON', true);
         define('WP_MEMORY_LIMIT', '1024M');
         define('WP_MAX_MEMORY_LIMIT', '1024M');
+        define('COOKIEHASH', md5('${DOMAIN}'));
+        define('COOKIE_DOMAIN', '${DOMAIN}');
+        if (php_sapi_name() !== 'cli') {
+            @ini_set('session.name', 'PHPSESSID_' . md5('${DOMAIN}'));
+        }
     depends_on:
       mariadb:
         condition: service_healthy
@@ -73,16 +70,12 @@ services:
       retries: 3
       start_period: 15s
 
-  # ──────────────────────────────────────────────
-  # WP-CLI – Herramienta de línea de comandos
-  # ──────────────────────────────────────────────
   wpcli:
     build:
       context: .
       dockerfile: Dockerfile.php
       args:
         PHP_VERSION: ${PHP_VERSION:-8.2}
-    # ❌ ELIMINADO: container_name: wp_cli
     restart: "no"
     entrypoint: [ "wp" ]
     command: [ "--info" ]
@@ -102,12 +95,8 @@ services:
     profiles:
       - tools
 
-  # ──────────────────────────────────────────────
-  # MariaDB 11 – Base de Datos
-  # ──────────────────────────────────────────────
   mariadb:
     image: mariadb:11.4
-    # ❌ ELIMINADO: container_name: wp_mariadb
     restart: unless-stopped
     volumes:
       - mariadb_data:/var/lib/mysql
@@ -126,12 +115,8 @@ services:
       retries: 5
       start_period: 30s
 
-  # ──────────────────────────────────────────────
-  # Redis 7 – Object Cache & Sesiones
-  # ──────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    # ❌ ELIMINADO: container_name: wp_redis
     restart: unless-stopped
     command: >
       redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --requirepass ${REDIS_PASSWORD}
