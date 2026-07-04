@@ -20,14 +20,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    labels:
-      - "traefik.enable=true"
-      # Nombre de router ÚNICO para Traefik.
-      # Define ROUTER_NAME en tu .env de Coolify (ej. ROUTER_NAME=sitio1, ROUTER_NAME=sitio2)
-      - "traefik.http.routers.${ROUTER_NAME:-wp_default}.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.${ROUTER_NAME:-wp_default}.entrypoints=websecure"
-      - "traefik.http.routers.${ROUTER_NAME:-wp_default}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.${ROUTER_NAME:-wp_default}.loadbalancer.server.port=80"
 
   php:
     build:
