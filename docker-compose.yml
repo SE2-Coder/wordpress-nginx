@@ -22,10 +22,11 @@ services:
       start_period: 10s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.wp.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.wp.entrypoints=websecure"
-      - "traefik.http.routers.wp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.wp.loadbalancer.server.port=80"
+      # 🆕 Nombre de router único usando COMPOSE_PROJECT_NAME
+      - "traefik.http.routers.wp-${COMPOSE_PROJECT_NAME}.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.wp-${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.wp-${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wp-${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=80"
 
   php:
     build:
