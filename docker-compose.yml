@@ -47,9 +47,7 @@ services:
         define('WP_MAX_MEMORY_LIMIT', '1024M');
         define('COOKIEHASH', md5('${DOMAIN}'));
         define('COOKIE_DOMAIN', '${DOMAIN}');
-        if (php_sapi_name() !== 'cli') {
-            @ini_set('session.name', 'PHPSESSID_' . md5('${DOMAIN}'));
-        }
+
     depends_on:
       mariadb:
         condition: service_healthy
