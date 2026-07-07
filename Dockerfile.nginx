@@ -6,6 +6,10 @@ LABEL description="Nginx optimizado para WordPress de alto rendimiento"
 # Eliminamos la configuración por defecto
 RUN rm -f /etc/nginx/conf.d/default.conf
 
+# Creamos el directorio para FastCGI Cache (¡IMPORTANTE!)
+RUN mkdir -p /var/cache/nginx/fastcgi \
+    && chown -R nginx:nginx /var/cache/nginx
+
 # Copiamos nuestra configuración personalizada
 COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY config/nginx/default.conf /etc/nginx/conf.d/default.conf
