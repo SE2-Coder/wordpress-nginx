@@ -1,0 +1,5 @@
+[client]
+user=root
+password=${DB_ROOT_PASSWORD}
+host=mariadb
+port=3306
