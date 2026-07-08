@@ -122,9 +122,79 @@ services:
       timeout: 3s
       retries: 3
 
+  # ─── EXPORTERS PARA MONITOREO ───
+  mariadb-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    container_name: ${DOMAIN:-wordpress}-mariadb-exporter
+    environment:
+      - DATA_SOURCE_NAME=${DB_USER}:${DB_PASSWORD}@tcp(mariadb:3306)/
+    restart: unless-stopped
+    networks:
+      - wp_network
+      - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=mariadb-exporter"
+      - "prometheus-port=9104"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:v1.1.0
+    container_name: ${DOMAIN:-wordpress}-nginx-exporter
+    command:
+      - '-nginx.scrape-uri=http://nginx:80/stub_status'
+    restart: unless-stopped
+    networks:
+      - wp_network
+      - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=nginx-exporter"
+      - "prometheus-port=9113"
+    depends_on:
+      - nginx
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    container_name: ${DOMAIN:-wordpress}-redis-exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - wp_network
+      - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=redis-exporter"
+      - "prometheus-port=9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  php-fpm-exporter:
+    image: hipages/php-fpm_exporter:v2.2.0
+    container_name: ${DOMAIN:-wordpress}-php-fpm-exporter
+    environment:
+      - PHP_FPM_SCRAPE_URI=tcp://php:9000/status
+    restart: unless-stopped
+    networks:
+      - wp_network
+      - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=php-fpm-exporter"
+      - "prometheus-port=9253"
+    depends_on:
+      - php
+
 networks:
   wp_network:
     driver: bridge
+  monitoring_net:
+    external: true
 
 volumes:
   wp_data:
