@@ -141,7 +141,7 @@ services:
         condition: service_healthy
 
   nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:latest
+    image: nginx/nginx-prometheus-exporter:1.5.1
     container_name: ${DOMAIN:-wordpress}-nginx-exporter
     command:
       - '-nginx.scrape-uri=http://nginx:80/stub_status'
@@ -175,7 +175,7 @@ services:
         condition: service_healthy
 
   php-fpm-exporter:
-    image: hipages/php-fpm_exporter:v2.1.0
+    image: hipages/php-fpm_exporter:2.1.0
     container_name: ${DOMAIN:-wordpress}-php-fpm-exporter
     environment:
       - PHP_FPM_SCRAPE_URI=tcp://php:9000/status
