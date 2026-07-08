@@ -144,6 +144,7 @@ services:
       - "prometheus-scrape=true"
       - "prometheus-job=mariadb-exporter"
       - "prometheus-port=9104"
+      - "site=${DOMAIN}"
     depends_on:
       mariadb:
         condition: service_healthy
@@ -161,6 +162,7 @@ services:
       - "prometheus-scrape=true"
       - "prometheus-job=nginx-exporter"
       - "prometheus-port=9113"
+      - "site=${DOMAIN}"
     depends_on:
       - nginx
 
@@ -178,6 +180,7 @@ services:
       - "prometheus-scrape=true"
       - "prometheus-job=redis-exporter"
       - "prometheus-port=9121"
+      - "site=${DOMAIN}"
     depends_on:
       redis:
         condition: service_healthy
@@ -195,6 +198,7 @@ services:
       - "prometheus-scrape=true"
       - "prometheus-job=php-fpm-exporter"
       - "prometheus-port=9253"
+      - "site=${DOMAIN}"
     depends_on:
       - php
 
