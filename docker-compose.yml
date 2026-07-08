@@ -47,7 +47,6 @@ services:
         define('WP_MAX_MEMORY_LIMIT', '1024M');
         define('COOKIEHASH', md5('${DOMAIN}'));
         define('COOKIE_DOMAIN', '${DOMAIN}');
-
     depends_on:
       mariadb:
         condition: service_healthy
@@ -126,7 +125,17 @@ services:
     image: prom/mysqld-exporter:v0.15.1
     container_name: ${DOMAIN:-wordpress}-mariadb-exporter
     environment:
-      DATA_SOURCE_NAME: "root:${DB_ROOT_PASSWORD}@tcp(mariadb:3306)/"
+      MYSQLD_EXPORTER_PASSWORD: ${DB_ROOT_PASSWORD}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "[client]" > /tmp/exporter.cnf
+        echo "user=root" >> /tmp/exporter.cnf
+        echo "password=$$MYSQLD_EXPORTER_PASSWORD" >> /tmp/exporter.cnf
+        echo "host=mariadb" >> /tmp/exporter.cnf
+        echo "port=3306" >> /tmp/exporter.cnf
+        /bin/mysqld_exporter --config.my-cnf=/tmp/exporter.cnf
     restart: unless-stopped
     networks:
       - wp_network
