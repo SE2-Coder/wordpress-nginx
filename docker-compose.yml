@@ -127,7 +127,7 @@ services:
     image: prom/mysqld-exporter:v0.15.1
     container_name: ${DOMAIN:-wordpress}-mariadb-exporter
     environment:
-      - DATA_SOURCE_NAME=${DB_USER}:${DB_PASSWORD}@tcp(mariadb:3306)/
+      DATA_SOURCE_NAME: "${DB_USER}:${DB_PASSWORD}@(mariadb:3306)/"
     restart: unless-stopped
     networks:
       - wp_network
