@@ -1,172 +1,206 @@
-version: '3.8'
+version: "3.9"
 
 services:
   nginx:
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    container_name: nginx
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - wordpress_data:/var/www/html
+      - wp_data:/var/www/html
+      - nginx_logs:/var/log/nginx
     depends_on:
-      - php
+      php:
+        condition: service_healthy
     networks:
       - wp_network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/ || exit 1" ]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
+      start_period: 10s
 
   php:
     build:
       context: .
       dockerfile: Dockerfile.php
-    container_name: php
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.2}
     restart: unless-stopped
     volumes:
-      - wordpress_data:/var/www/html
+      - wp_data:/var/www/html
     environment:
-      - WORDPRESS_DB_HOST=mariadb:3306
-      - WORDPRESS_DB_NAME=${DB_NAME}
-      - WORDPRESS_DB_USER=${DB_USER}
-      - WORDPRESS_DB_PASSWORD=${DB_PASSWORD}
-      - WORDPRESS_TABLE_PREFIX=${TABLE_PREFIX}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', 6379);
+        define('WP_REDIS_PASSWORD', '${REDIS_PASSWORD}');
+        define('WP_REDIS_DATABASE', ${REDIS_DB:-0});
+        define('WP_CACHE', true);
+        define('DISABLE_WP_CRON', true);
+        define('WP_MEMORY_LIMIT', '1024M');
+        define('WP_MAX_MEMORY_LIMIT', '1024M');
+        define('COOKIEHASH', md5('${DOMAIN}'));
+        define('COOKIE_DOMAIN', '${DOMAIN}');
+
     depends_on:
-      - mariadb
-      - redis
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - wp_network
     healthcheck:
-      test: [ "CMD", "php-fpm", "-t" ]
+      test: [ "CMD-SHELL", "php-fpm -t || exit 1" ]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
+      start_period: 15s
+
+  wpcli:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.2}
+    restart: "no"
+    entrypoint: [ "wp" ]
+    command: [ "--info" ]
+    volumes:
+      - wp_data:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_TABLE_PREFIX: ${TABLE_PREFIX}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - wp_network
+    profiles:
+      - tools
 
   mariadb:
     image: mariadb:11.4
-    container_name: mariadb
     restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./mariadb/conf.d:/etc/mysql/conf.d
+      - ./config/mariadb/custom.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     networks:
       - wp_network
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
-    container_name: redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: >
+      redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
       - wp_network
     healthcheck:
       test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 3s
       retries: 3
-
-  wpcli:
-    build:
-      context: .
-      dockerfile: Dockerfile.php
-    container_name: wpcli
-    restart: "no"
-    entrypoint: [ "wp" ]
-    command: [ "--info" ]
-    volumes:
-      - wordpress_data:/var/www/html
-    environment:
-      - WORDPRESS_DB_HOST=mariadb:3306
-      - WORDPRESS_DB_NAME=${DB_NAME}
-      - WORDPRESS_DB_USER=${DB_USER}
-      - WORDPRESS_DB_PASSWORD=${DB_PASSWORD}
-      - WORDPRESS_TABLE_PREFIX=${TABLE_PREFIX}
-    depends_on:
-      - mariadb
-    networks:
-      - wp_network
-    profiles:
-      - tools
 
   mariadb-exporter:
     image: prom/mysqld-exporter:v0.15.1
-    container_name: mariadb-exporter
-    restart: unless-stopped
+    container_name: ${DOMAIN:-wordpress}-mariadb-exporter
     environment:
-      - DATA_SOURCE_NAME=${DB_USER}:${DB_PASSWORD}@tcp(mariadb:3306)/
+      DATA_SOURCE_NAME: "root:${DB_ROOT_PASSWORD}@tcp(mariadb:3306)/"
+    restart: unless-stopped
     networks:
       - wp_network
       - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=mariadb-exporter"
+      - "prometheus-port=9104"
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
 
   nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:1.3.0
-    container_name: nginx-exporter
-    restart: unless-stopped
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: ${DOMAIN:-wordpress}-nginx-exporter
     command:
       - '-nginx.scrape-uri=http://nginx:80/stub_status'
+    restart: unless-stopped
     networks:
       - wp_network
       - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=nginx-exporter"
+      - "prometheus-port=9113"
     depends_on:
       - nginx
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.62.0
-    container_name: redis-exporter
-    restart: unless-stopped
+    container_name: ${DOMAIN:-wordpress}-redis-exporter
     environment:
-      - REDIS_ADDR=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    restart: unless-stopped
     networks:
       - wp_network
       - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=redis-exporter"
+      - "prometheus-port=9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   php-fpm-exporter:
     image: hipages/php-fpm_exporter:2.1.0
-    container_name: php-fpm-exporter
-    restart: unless-stopped
+    container_name: ${DOMAIN:-wordpress}-php-fpm-exporter
     environment:
-      - PHP_FPM_SCRAPE_URI=tcp://php:9000/status
+      PHP_FPM_SCRAPE_URI: tcp://php:9000/status
+    restart: unless-stopped
     networks:
       - wp_network
       - monitoring_net
+    labels:
+      - "prometheus-scrape=true"
+      - "prometheus-job=php-fpm-exporter"
+      - "prometheus-port=9253"
     depends_on:
       - php
-
-volumes:
-  wordpress_data:
-    driver: local
-  mariadb_data:
-    driver: local
-  redis_data:
-    driver: local
 
 networks:
   wp_network:
     driver: bridge
   monitoring_net:
     external: true
+
+volumes:
+  wp_data:
+    driver: local
+  mariadb_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_logs:
+    driver: local
