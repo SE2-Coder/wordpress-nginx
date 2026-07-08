@@ -47,6 +47,7 @@ services:
         define('WP_MAX_MEMORY_LIMIT', '1024M');
         define('COOKIEHASH', md5('${DOMAIN}'));
         define('COOKIE_DOMAIN', '${DOMAIN}');
+
     depends_on:
       mariadb:
         condition: service_healthy
@@ -121,6 +122,7 @@ services:
       timeout: 3s
       retries: 3
 
+  # ─── EXPORTERS PARA MONITOREO ──
   mariadb-exporter:
     image: prom/mysqld-exporter:v0.15.1
     container_name: ${DOMAIN:-wordpress}-mariadb-exporter
