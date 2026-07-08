@@ -47,7 +47,6 @@ services:
         define('WP_MAX_MEMORY_LIMIT', '1024M');
         define('COOKIEHASH', md5('${DOMAIN}'));
         define('COOKIE_DOMAIN', '${DOMAIN}');
-
     depends_on:
       mariadb:
         condition: service_healthy
@@ -122,9 +121,7 @@ services:
       timeout: 3s
       retries: 3
 
-  # ─── EXPORTERS PARA MONITOREO ───
   mariadb-exporter:
-    mariadb-exporter:
     image: prom/mysqld-exporter:v0.15.1
     container_name: ${DOMAIN:-wordpress}-mariadb-exporter
     environment:
@@ -161,8 +158,8 @@ services:
     image: oliver006/redis_exporter:v1.62.0
     container_name: ${DOMAIN:-wordpress}-redis-exporter
     environment:
-      - REDIS_ADDR=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     restart: unless-stopped
     networks:
       - wp_network
@@ -179,7 +176,7 @@ services:
     image: hipages/php-fpm_exporter:2.1.0
     container_name: ${DOMAIN:-wordpress}-php-fpm-exporter
     environment:
-      - PHP_FPM_SCRAPE_URI=tcp://php:9000/status
+      PHP_FPM_SCRAPE_URI: tcp://php:9000/status
     restart: unless-stopped
     networks:
       - wp_network
